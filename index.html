@@ -101,6 +101,14 @@
   .download-btn:hover { background: #1e3a4d; }
   .download-btn svg { width: 16px; height: 16px; }
 
+  /* EDIT PANEL */
+  .edit-panel { margin-top: 14px; max-width: 600px; background: #fafbfc; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: none; }
+  .edit-panel.visible { display: block; }
+  .edit-panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 12px; }
+  .edit-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 6px; }
+  .edit-input { width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; transition: border-color .15s; background: white; }
+  .edit-input:focus { border-color: var(--blue); }
+
   /* ERROR */
   .error-msg { background: #fff5f5; border: 1px solid #fcc; border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: #c0392b; display: none; }
 
@@ -188,6 +196,21 @@
       </div>
       <div class="placa-section">
         <canvas id="placa-canvas"></canvas>
+        <div class="edit-panel" id="edit-panel">
+          <div class="edit-panel-title">✏ Ajustar texto de la placa</div>
+          <div id="edit-fields-B">
+            <label class="edit-label">Categoría</label>
+            <input class="edit-input" id="edit-categoria" type="text">
+            <label class="edit-label" style="margin-top:10px">Título / Hook</label>
+            <input class="edit-input" id="edit-hook" type="text">
+          </div>
+          <div id="edit-fields-C" style="display:none">
+            <label class="edit-label">Dato central</label>
+            <input class="edit-input" id="edit-dato" type="text">
+            <label class="edit-label" style="margin-top:10px">Frase explicativa</label>
+            <input class="edit-input" id="edit-frase" type="text">
+          </div>
+        </div>
         <button class="download-btn" onclick="downloadPlaca()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Descargar placa (PNG · 1200×628)
@@ -355,11 +378,42 @@ Respondé SOLO en JSON sin texto extra:
 function renderOutput(data, profile) {
   document.getElementById('post-content').textContent = data.post;
   renderPlaca(data, profile);
+  populateEditPanel(data, profile);
   const tags = data.hashtags;
   document.getElementById('hashtag-list').innerHTML = tags.map(t => `<span class="hashtag-pill">${t}</span>`).join('');
   document.getElementById('hashtag-raw').textContent = tags.join(' ');
   document.getElementById('output-section').classList.add('visible');
   setTimeout(() => document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function populateEditPanel(data, profile) {
+  const fieldsB = document.getElementById('edit-fields-B');
+  const fieldsC = document.getElementById('edit-fields-C');
+  if (profile.placaType === 'B') {
+    fieldsB.style.display = 'block';
+    fieldsC.style.display = 'none';
+    document.getElementById('edit-categoria').value = data.categoria || '';
+    document.getElementById('edit-hook').value = data.hook || '';
+  } else {
+    fieldsB.style.display = 'none';
+    fieldsC.style.display = 'block';
+    document.getElementById('edit-dato').value = data.dato || '';
+    document.getElementById('edit-frase').value = data.frase || '';
+  }
+  document.getElementById('edit-panel').classList.add('visible');
+}
+
+function getEditedData() {
+  const profile = profiles[currentAccount];
+  const edited = { ...currentData };
+  if (profile.placaType === 'B') {
+    edited.categoria = document.getElementById('edit-categoria').value;
+    edited.hook = document.getElementById('edit-hook').value;
+  } else {
+    edited.dato = document.getElementById('edit-dato').value;
+    edited.frase = document.getElementById('edit-frase').value;
+  }
+  return edited;
 }
 
 function renderPlaca(data, profile) {
@@ -504,6 +558,12 @@ function hideError() { document.getElementById('error-msg').style.display = 'non
 
 // Init
 loadTopics();
+['edit-categoria', 'edit-hook', 'edit-dato', 'edit-frase'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (!currentData) return;
+    renderPlaca(getEditedData(), profiles[currentAccount]);
+  });
+});
 </script>
 </body>
 </html>
